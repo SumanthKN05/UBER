@@ -1,6 +1,7 @@
 const userModel = require('../models/user.model.js');
 const userServices = require('../services/user.service.js');
 const { validationResult } = require('express-validator');
+const blacklistTokenModel = require('../models/blacklistToken.model.js');
 
 // Authentication
 
@@ -29,27 +30,63 @@ module.exports.registerUser = async (req, res, next) => {
 };
 
 module.exports.loginUser = async (req, res, next) => {
-  // checking the error from the login user validation we did in the routes and sending response
+  // Checking validation errors
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
+
   const { email, password } = req.body;
-  // todo: finding user in db using the user model in the models folder
-  const user = await userModel.findByEmail(email).select('+password');
+  const user = await userModel.findOne({ email }).select('+password');
 
   if (!user) {
     return res.status(401).json({ message: 'Invalid email or password' });
   }
-  // todo: comparing hashed password with the entered password
 
-  const isMatch = await user.comparePassword(password); // ✅ This should now work
+  const isMatch = await user.comparePassword(password);
   if (!isMatch) {
-    throw new Error('Invalid credentials');
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
-  
-  const token = user.generateToken();
-  res.status(200).json({ user, token });
 
+  // Generate token
+  const token = user.generateToken();
+
+  // ✅ Set cookie **before sending response**
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: false, // Change to true if using HTTPS
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  });
+
+  // ✅ Send final response
+  res.status(200).json({ message: 'Login successful', token });
+};
+
+
+module.exports.getUserProfile = async (req, res, next) => {
+  const user = await userModel.findById(req.user._id);
+  res.status(200).json(req.user);
+  if (!token) return res.status(400).json({ message: 'No token provided' });
+ 
 
 }
+
+
+module.exports.logoutUser = async (req, res, next) => {
+  const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+
+  if (!token) {
+    return res.status(400).json({ message: 'No token provided' });
+  }
+  const blacklistToken = await blacklistTokenModel.create({ token });
+  console.log(blacklistToken);
+
+
+
+  // ✅ Clear cookie **before sending response**
+  res.clearCookie('token');
+
+  // ✅ Send final response
+  return res.status(200).json({ message: 'Logged out successfully' });
+};

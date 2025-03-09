@@ -141,3 +141,91 @@ POST /users/login
 - Password comparison is done using bcrypt
 - Returns JWT token that expires in 1 hour
 - Email and password combination must match database records
+
+## Get User Profile
+Endpoint to retrieve the authenticated user's profile.
+
+### Endpoint
+```
+GET /users/profile
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Responses
+
+#### Success Response
+**Code**: `200 OK`
+
+**Response Body**:
+```json
+{
+  "_id": "string",
+  "fullname": {
+    "firstname": "string",
+    "lastname": "string"
+  },
+  "email": "string",
+  "socketId": "string"
+}
+```
+
+#### Error Response
+**Code**: `401 Unauthorized`
+- When no token is provided or token is invalid
+
+**Response Body**:
+```json
+{
+  "message": "No token provided"
+}
+```
+
+### Security
+- Requires valid JWT token in Authorization header
+- Token must not be blacklisted
+
+## Logout User
+Endpoint to logout the currently authenticated user.
+
+### Endpoint
+```
+POST /users/logout
+```
+
+### Headers
+```
+Authorization: Bearer <token>
+```
+
+### Responses
+
+#### Success Response
+**Code**: `200 OK`
+
+**Response Body**:
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+#### Error Response
+**Code**: `400 Bad Request`
+- When no token is provided
+
+**Response Body**:
+```json
+{
+  "message": "No token provided"
+}
+```
+
+### Security
+- Requires valid JWT token in Authorization header or cookie
+- Token is blacklisted after logout
+- Clears authentication cookie
+- User must be authenticated to access this endpoint
