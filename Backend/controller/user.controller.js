@@ -27,3 +27,29 @@ module.exports.registerUser = async (req, res, next) => {
   const token = user.generateToken();
   res.status(201).json({ user, token });
 };
+
+module.exports.loginUser = async (req, res, next) => {
+  // checking the error from the login user validation we did in the routes and sending response
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  const { email, password } = req.body;
+  // todo: finding user in db using the user model in the models folder
+  const user = await userModel.findByEmail(email).select('+password');
+
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid email or password' });
+  }
+  // todo: comparing hashed password with the entered password
+
+  const isMatch = await user.comparePassword(password); // ✅ This should now work
+  if (!isMatch) {
+    throw new Error('Invalid credentials');
+  }
+  
+  const token = user.generateToken();
+  res.status(200).json({ user, token });
+
+
+}

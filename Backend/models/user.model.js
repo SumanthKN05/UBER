@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema({
     },
     lastname: {
       type: String,
-      minlength: [5, "Last Name must at least have 5 characters"],
+      minlength: [5, "Last Name must at least have 2 characters"],
       maxlength: 30,
     },
   },
@@ -48,6 +48,11 @@ userSchema.methods.comparePassword = function (password) {
 // todo: creating static method for hashing Password
 userSchema.statics.hashPassword = async function (password) {
   return await bcrypt.hash(password, 10);
+};
+
+//todo:Static method to find user by email
+userSchema.statics.findByEmail = function (email) {
+  return this.findOne({ email });
 };
 
 // todo: creating user model
