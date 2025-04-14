@@ -60,10 +60,14 @@ const captainSchema =  new mongoose.Schema({
   },
  
 });
-captainSchema.methods.generateAuthToken = function(){
-  const token = jwt.sign({_id: this._id}, process.env.JWT_PRIVATE_KEY);
-  return token;
-}
+captainSchema.methods.generateAuthToken = function () {
+  if (!process.env.JWT_PRIVATE_KEY) {
+    throw new Error("JWT_PRIVATE_KEY is not defined in the environment variables");
+  }
+  
+  return jwt.sign({ _id: this._id }, process.env.JWT_PRIVATE_KEY, { expiresIn: "7d" });
+};
+
 captainSchema.methods.comparePassword = function(password){
   return bcrypt.compare(password, this.password);
 }

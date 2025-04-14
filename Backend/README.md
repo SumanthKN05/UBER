@@ -230,6 +230,8 @@ Authorization: Bearer <token>
 - Clears authentication cookie
 - User must be authenticated to access this endpoint
 
+
+
 # Captain API Documentation
 
 ## Register Captain
@@ -237,35 +239,36 @@ Endpoint to register a new captain (driver) in the system.
 
 ### Endpoint
 ```
-POST /captains/register
+POST /captain/register
 ```
 
 ### Request Body
 ```json
 {
   "fullname": {
-    "firstname": "string",  // minimum 5 characters
-    "lastname": "string"
+    "firstname": "string", // minimum 5 characters
+    "lastname": "string"   // minimum 2 characters
   },
-  "email": "string",       // valid email format
-  "password": "string",    // minimum 6 characters
+  "email": "string",      // valid email format
+  "password": "string",   // minimum 6 characters
   "vehicle": {
-    "color": "string",     // minimum 3 characters
-    "plate": "string",     // minimum 3 characters
-    "capacity": "number",  // numeric value
-    "typeVehicle": "string" // must be "auto", "car", or "motorcycle"
+    "color": "string",    // minimum 3 characters
+    "plate": "string",    // minimum 3 characters
+    "capacity": 4,        // numeric value
+    "typeVehicle": "car"  // one of: "auto", "car", "motorcycle"
   }
 }
 ```
 
 ### Validation Rules
 - `fullname.firstname`: Must be at least 5 characters long
+- `fullname.lastname`: Must be at least 2 characters long
 - `email`: Must be a valid email format
 - `password`: Must be at least 6 characters long
 - `vehicle.color`: Must be at least 3 characters long
 - `vehicle.plate`: Must be at least 3 characters long
 - `vehicle.capacity`: Must be a numeric value
-- `vehicle.typeVehicle`: Must be one of: "auto", "car", "motorcycle"
+- `vehicle.typeVehicle`: Must be one of: `"auto"`, `"car"`, `"motorcycle"`
 
 ### Responses
 
@@ -285,16 +288,85 @@ POST /captains/register
     "vehicle": {
       "color": "string",
       "plate": "string",
-      "capacity": "number",
-      "typeVehicle": "string"
+      "capacity": 4,
+      "typeVehicle": "car"
     }
   },
-  "token": "string" // JWT token
+  "token": "string" // JWT token for authentication
 }
 ```
 
 #### Error Response
 **Code**: `400 Bad Request`
+
+**Response Body**:
+```json
+{
+  "errors": [
+    {
+      "msg": "Error message", // Validation error message
+      "param": "field_name",  // Field that caused the error
+      "location": "body"      // Location of the error
+    }
+  ]
+}
+```
+
+### Security
+- Password is hashed using bcrypt before storing
+- Returns JWT token for authentication
+- Email must be unique in the system
+
+## Login Captain
+Endpoint to authenticate and login an existing captain.
+
+### Endpoint
+```
+POST /captain/login
+```
+
+### Request Body
+```json
+{
+  "email": "string",    // valid email format
+  "password": "string"  // minimum 6 characters
+}
+```
+
+### Validation Rules
+- `email`: Must be a valid email format
+- `password`: Must be at least 6 characters long
+
+### Responses
+
+#### Success Response
+**Code**: `200 OK`
+
+**Response Body**:
+```json
+{
+  "message": "Captain logged in successfully",
+  "captain": {
+    "_id": "string",
+    "fullname": {
+      "firstname": "string",
+      "lastname": "string"
+    },
+    "email": "string",
+    "vehicle": {
+      "color": "string",
+      "plate": "string",
+      "capacity": 4,
+      "typeVehicle": "car"
+    }
+  }
+}
+```
+
+#### Error Responses
+
+**Code**: `400 Bad Request`
+- When validation fails
 
 **Response Body**:
 ```json
@@ -309,8 +381,120 @@ POST /captains/register
 }
 ```
 
+**Code**: `404 Not Found`
+- When captain is not found
+
+**Response Body**:
+```json
+{
+  "message": "Captain not found"
+}
+```
+
+**Code**: `400 Bad Request`
+- When password is invalid
+
+**Response Body**:
+```json
+{
+  "message": "Invalid password"
+}
+```
+
 ### Security
-- Password is hashed before storing
-- Returns JWT token for authentication
-- Email must be unique in the system
-- All fields are required for registration
+- Password comparison is done using bcrypt
+- Sets JWT token in an HTTP-only cookie
+- Cookie settings include security measures (httpOnly, secure in production, sameSite)
+- Email and password combination must match database records
+
+## Get Captain Profile
+Endpoint to retrieve the authenticated captain's profile.
+
+### Endpoint
+```
+GET /captain/profile
+```
+
+### Authentication
+Requires authentication using the token in cookies. If using Postman or direct API calls, include the token in cookies.
+
+### Responses
+
+#### Success Response
+**Code**: `200 OK`
+
+**Response Body**:
+```json
+{
+  "captain": {
+    "_id": "string",
+    "fullname": {
+      "firstname": "string",
+      "lastname": "string"
+    },
+    "email": "string",
+    "vehicle": {
+      "color": "string",
+      "plate": "string",
+      "capacity": 4,
+      "typeVehicle": "car"
+    }
+  }
+}
+```
+
+#### Error Response
+**Code**: `401 Unauthorized`
+- When no token is provided or token is invalid
+
+**Response Body**:
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+### Security
+- Requires valid JWT token in cookies
+- Token must not be blacklisted
+- Captain must be authenticated to access this endpoint
+
+## Logout Captain
+Endpoint to logout the currently authenticated captain.
+
+### Endpoint
+```
+GET /captain/logout
+```
+
+### Authentication
+Requires authentication using the token in cookies. If using Postman or direct API calls, include the token in cookies.
+
+### Responses
+
+#### Success Response
+**Code**: `200 OK`
+
+**Response Body**:
+```json
+{
+  "message": "Captain logged out successfully"
+}
+```
+
+#### Error Response
+**Code**: `401 Unauthorized`
+- When no token is provided or token is invalid
+
+**Response Body**:
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+### Security
+- Requires valid JWT token in cookies
+- Token is blacklisted after logout
+- Clears the authentication cookie
+- Captain must be authenticated to access this endpoint
